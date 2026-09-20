@@ -3,9 +3,10 @@ using UnityEngine;
 
 public class PlatformTile : MonoBehaviour
 {
+    [SerializeField] Transform visualTransform;
     [SerializeField] float breakingDuration = 1.25f;
     [SerializeField] float animationDuration = 0.5f;
-    
+
     [SerializeField] private Renderer _renderer;
     private MaterialPropertyBlock block;
     private bool isBreaking = false;
@@ -16,11 +17,16 @@ public class PlatformTile : MonoBehaviour
         if (_renderer == null)
             _renderer = GetComponent<Renderer>();
 
-        block = new MaterialPropertyBlock();
-        _renderer.GetPropertyBlock(block);
+        if (block == null)
+        {
+            block = new MaterialPropertyBlock();
+            _renderer.GetPropertyBlock(block);
+        }
     }
-    public void CharacterStepped()
+    public void CharacterStepped(bool isPlayer)
     {
+        if(AudioManager.Instance!= null && isPlayer)
+            AudioManager.Instance.PlayPopSfx();
         isBreaking = true;
         StartCoroutine(PlaySteppedAnimation());
         StartCoroutine(StartBreaking());
@@ -29,7 +35,13 @@ public class PlatformTile : MonoBehaviour
     private IEnumerator StartBreaking()
     {
         float elapsedTime = 0f;
+        if (block == null)
+        {
+            block = new MaterialPropertyBlock();
+            _renderer.GetPropertyBlock(block);
+        }
         Color tileColor = block.GetColor("_BaseColor");
+
         while (elapsedTime < breakingDuration)
         {
             Color currentColor = Color.Lerp(tileColor, Color.white, elapsedTime);
@@ -48,35 +60,35 @@ public class PlatformTile : MonoBehaviour
         }
     }
     private IEnumerator PlaySteppedAnimation()
-{
-    Vector3 originalScale = transform.localScale;
-    Vector3 targetScale = originalScale * 0.9f;
-
-    float halfDuration = animationDuration * 0.5f;
-    float elapsed = 0f;
-
-    // Scale down to 90%
-    while (elapsed < halfDuration)
     {
-        elapsed += Time.deltaTime;
-        float t = Mathf.Clamp01(elapsed / halfDuration);
+        Vector3 originalScale = visualTransform.localScale;
+        Vector3 targetScale = originalScale * 0.9f;
 
-        transform.localScale = Vector3.Lerp(originalScale,targetScale,t);
-        yield return null;
+        float halfDuration = animationDuration * 0.5f;
+        float elapsed = 0f;
+
+        // Scale down to 90%
+        while (elapsed < halfDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / halfDuration);
+
+            visualTransform.localScale = Vector3.Lerp(originalScale, targetScale, t);
+            yield return null;
+        }
+
+        // Scale back to 100%
+        elapsed = 0f;
+
+        while (elapsed < halfDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / halfDuration);
+
+            visualTransform.localScale = Vector3.Lerp(targetScale, originalScale, t);
+            yield return null;
+        }
+
+        visualTransform.localScale = originalScale;
     }
-
-    // Scale back to 100%
-    elapsed = 0f;
-
-    while (elapsed < halfDuration)
-    {
-        elapsed += Time.deltaTime;
-        float t = Mathf.Clamp01(elapsed / halfDuration);
-
-        transform.localScale = Vector3.Lerp(targetScale,originalScale,t);
-        yield return null;
-    }
-
-    transform.localScale = originalScale;
-}
 }

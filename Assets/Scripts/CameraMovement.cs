@@ -7,6 +7,10 @@ public class CameraMovement : MonoBehaviour
     [SerializeField] Vector3 offset = new Vector3(0, 15, -15); 
     public float smoothSpeed = 5f;
     
+    void Start()
+    {
+        transform.position = target.position + offset;
+    }
     void LateUpdate()
     {
         Vector3 targetPosition = target.position + offset;

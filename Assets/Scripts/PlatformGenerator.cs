@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class PlatformGenerator : MonoBehaviour
 {
@@ -8,7 +9,8 @@ public class PlatformGenerator : MonoBehaviour
     [SerializeField] private int row;
     [SerializeField] private int column;
     [SerializeField] private int yLevels;
-    [SerializeField] List<Color> levelsColors = new();
+    [SerializeField] private List<Color> levelsColors = new();
+    [SerializeField] private Color standPointTilesColor;
     [SerializeField] private Vector3 spawnOffset;
     [SerializeField] private float evenRowOffset = 0.8725f;
     [SerializeField] private Transform startPoint;
@@ -63,20 +65,50 @@ public class PlatformGenerator : MonoBehaviour
     }
     private int GetNextLevelColor(int colorIndex)
     {
-        return colorIndex >= levelsColors.Count -1 ? 0: ++colorIndex;
+        return colorIndex >= levelsColors.Count - 1 ? 0 : ++colorIndex;
     }
 
 
-    public Vector3 SetupPlayerStandTile()
+    public List<Vector3> SetupSpawnTiles(int totalCount)
     {
-        Vector3 position = startPoint.position;
-        position.x += spawnOffset.x * row/2;
-        position.y += spawnOffset.y * yLevels;
-        position.z += spawnOffset.z * column/2;
+        List<Vector3> spawnPositions = new List<Vector3>();
 
-        GameObject tile = Instantiate(platformPrefab,position,Quaternion.identity);
-        tile.transform.SetParent(transform);
+        // Calculate center point at top level
+        Vector3 centerPos = startPoint.position;
+        centerPos.x += spawnOffset.x * (row / 2f);
+        centerPos.y += spawnOffset.y * yLevels;
+        centerPos.z += spawnOffset.z * (column / 2f);
 
-        return position;
+        // Distance between starting tiles
+        float radius = (totalCount > 1) ? spawnOffset.x * 2f : 0f;
+
+        for (int i = 0; i < totalCount; i++)
+        {
+            Vector3 tilePos = centerPos;
+
+            // Arrange starting tiles in a circle around center
+            if (totalCount > 1)
+            {
+                float angle = i * (360f / totalCount) * Mathf.Deg2Rad;
+                tilePos += new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
+            }
+
+            GameObject tile = Instantiate(platformPrefab, tilePos, Quaternion.identity);
+            tile.transform.SetParent(transform);
+            tile.GetComponent<PlatformTile>().SetPlatformTileColor(standPointTilesColor);
+            // Return character spawn position slightly above the tile top surface
+            spawnPositions.Add(tilePos + Vector3.up * 0.1f);
+        }
+
+        return spawnPositions;
+    }
+    public Vector3 GetPlatformCenter()
+    {
+        Vector3 centerPosition = startPoint.position;
+        float xOffset = spawnOffset.x * Random.Range(1.0f,3.0f);
+        float zOffset = spawnOffset.z * Random.Range(1.0f,3.0f);
+        centerPosition.x += xOffset + spawnOffset.x * row/2;
+        centerPosition.z += zOffset + spawnOffset.z * column/2;
+        return centerPosition;
     }
 }
